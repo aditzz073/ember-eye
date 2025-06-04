@@ -1,0 +1,35 @@
+.location-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--forest-green);
+  margin-bottom: 0.5rem;
+  display: block;
+  letter-spacing: 0.2px; /* Improve readability */
+}
+
+.location-coordinates {
+  font-size: 0.9rem;
+  color: var(--text-color);
+  margin-top: 0.25rem;
+  font-family: monospace; /* Better for displaying coordinates */
+  letter-spacing: 0.3px;
+}
+
+.location-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 30%); /* Deeper shadow for depth */
+  border-radius: 8px; /* Ensure rounded corners */
+  padding: 1rem 1.25rem; /* Slightly more padding */
+}
+
+/* Add light mode specific styles for consistency */
+.location-info {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 4px 8px var(--shadow-color);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
+}
