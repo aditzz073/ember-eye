@@ -3,13 +3,10 @@
   "buildCommand": "cd firepre && npm install && npm run build",
   "outputDirectory": "firepre/dist",
   "framework": null,
-  "routes": [
+  "rewrites": [
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
