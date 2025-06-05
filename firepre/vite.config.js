@@ -12,6 +12,10 @@ export default defineConfig(({ command, mode, isSsrBuild }) => {
       // Generate sourcemaps in development only
       devSourcemap: !isProd
     },
+    define: {
+      // Fix for Leaflet in production
+      global: 'globalThis',
+    },
     build: {
       // Production optimizations
       minify: 'terser',
@@ -37,6 +41,9 @@ export default defineConfig(({ command, mode, isSsrBuild }) => {
       cssMinify: disableCssMinify ? false : isProd,
       // Keep CSS in separate files
       cssCodeSplit: true,
+    },
+    optimizeDeps: {
+      include: ['leaflet', 'react-leaflet'],
     },
     server: {
       port: 5173,
