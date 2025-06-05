@@ -3,6 +3,16 @@ import axios from 'axios';
 // The base URL for your FastAPI backend
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
+// Check if we're in production and don't have a backend URL
+const isProduction = import.meta.env.PROD;
+const hasBackendUrl = import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL !== 'http://localhost:8000/api';
+
+console.log('Environment check:', { 
+  isProduction, 
+  hasBackendUrl, 
+  apiUrl: API_BASE_URL 
+});
+
 // Client-side prediction as a fallback
 export function clientPredictRisk({ temperature, humidity, windSpeed, vegetation }) {
   // Make sure all inputs are valid numbers
@@ -41,6 +51,12 @@ export async function predictRisk({
   elevation = null,
   droughtIndex = null
 }) {
+  // If in production without a backend URL, use client-side prediction
+  if (isProduction && !hasBackendUrl) {
+    console.log('Production mode without backend URL, using client-side prediction');
+    return clientPredictRisk({ temperature, humidity, windSpeed, vegetation });
+  }
+
   try {
     // Ensure temperature and windSpeed have only one decimal place
     const formattedTemperature = parseFloat(parseFloat(temperature).toFixed(1));

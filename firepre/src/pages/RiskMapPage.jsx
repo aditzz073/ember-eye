@@ -15,19 +15,31 @@ export default function RiskMapPage() {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [locationName, setLocationName] = useState('');
   const [apiStatus, setApiStatus] = useState({ status: '', message: '' });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleLocationChange = async ({ lat, lng }) => {
-    setSelectedLocation({ lat, lng });
-    const data = await getWeatherData(lat, lng);
-    setWeather(data);
-    
-    // Get location name based on coordinates
     try {
-      const name = await getLocationName(lat, lng);
-      setLocationName(name);
+      setIsLoading(true);
+      setError(null);
+      setSelectedLocation({ lat, lng });
+      
+      const data = await getWeatherData(lat, lng);
+      setWeather(data);
+      
+      // Get location name based on coordinates
+      try {
+        const name = await getLocationName(lat, lng);
+        setLocationName(name);
+      } catch (error) {
+        console.error("Error getting location name:", error);
+        setLocationName('Unknown location');
+      }
     } catch (error) {
-      console.error("Error getting location name:", error);
-      setLocationName('Unknown location');
+      console.error("Error in handleLocationChange:", error);
+      setError('Failed to get location data');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -81,6 +93,19 @@ export default function RiskMapPage() {
   return (
     <div className="risk-map-page">
       <ApiStatus status={apiStatus.status} message={apiStatus.message} />
+      {error && (
+        <div className="error-banner" style={{
+          background: '#fee2e2',
+          border: '1px solid #fecaca',
+          color: '#dc2626',
+          padding: '1rem',
+          margin: '1rem',
+          borderRadius: '0.5rem',
+          textAlign: 'center'
+        }}>
+          {error}
+        </div>
+      )}
       <div className="container">
         <div className="page-header">
           <h1 className="page-title">AI Risk Map</h1>
