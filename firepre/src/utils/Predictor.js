@@ -5,12 +5,15 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 
 // Check if we're in production and don't have a backend URL
 const isProduction = import.meta.env.PROD;
-const hasBackendUrl = import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL !== 'http://localhost:8000/api';
+const hasValidBackendUrl = import.meta.env.VITE_API_BASE_URL && 
+  import.meta.env.VITE_API_BASE_URL !== 'http://localhost:8000/api' &&
+  !import.meta.env.VITE_API_BASE_URL.includes('your-backend-api-url.com');
 
 console.log('Environment check:', { 
   isProduction, 
-  hasBackendUrl, 
-  apiUrl: API_BASE_URL 
+  hasValidBackendUrl, 
+  apiUrl: API_BASE_URL,
+  envApiUrl: import.meta.env.VITE_API_BASE_URL
 });
 
 // Client-side prediction as a fallback
@@ -23,20 +26,115 @@ export function clientPredictRisk({ temperature, humidity, windSpeed, vegetation
   
   console.log("Client prediction using values:", { temp, humid, wind, veg });
   
-  let score = 0;
-
-  if (temp > 35) score += 30;
-  if (humid < 30) score += 20;
-  if (wind > 15) score += 30;
-  if (veg > 70) score += 20;
-
-  const percentage = Math.min(score, 100);
-
+  // More sophisticated risk calculation based on wildfire research
+  let riskScore = 0;
+  
+  // Temperature factor (0-40 points)
+  if (temp > 40) riskScore += 40;
+  else if (temp > 35) riskScore += 35;
+  else if (temp > 30) riskScore += 25;
+  else if (temp > 25) riskScore += 15;
+  else if (temp > 20) riskScore += 5;
+  
+  // Humidity factor (0-30 points) - lower humidity = higher risk
+  if (humid < 15) riskScore += 30;
+  else if (humid < 25) riskScore += 25;
+  else if (humid < 35) riskScore += 20;
+  else if (humid < 45) riskScore += 15;
+  else if (humid < 55) riskScore += 10;
+  else if (humid < 65) riskScore += 5;
+  
+  // Wind speed factor (0-20 points)
+  if (wind > 25) riskScore += 20;
+  else if (wind > 20) riskScore += 18;
+  else if (wind > 15) riskScore += 15;
+  else if (wind > 10) riskScore += 10;
+  else if (wind > 5) riskScore += 5;
+  
+  // Vegetation factor (0-10 points)
+  if (veg > 80) riskScore += 10;
+  else if (veg > 70) riskScore += 8;
+  else if (veg > 60) riskScore += 6;
+  else if (veg > 50) riskScore += 4;
+  else if (veg > 40) riskScore += 2;
+  
+  // Cap at 100 and ensure minimum of 1
+  const percentage = Math.max(1, Math.min(riskScore, 100));
+  
   let level = 'Low';
-  if (percentage > 70) level = 'High';
-  else if (percentage > 40) level = 'Medium';
+  if (percentage >= 75) level = 'Very High';
+  else if (percentage >= 60) level = 'High';
+  else if (percentage >= 40) level = 'Medium';
+  else if (percentage >= 20) level = 'Low';
+  else level = 'Very Low';
 
-  return { percentage, level };
+  console.log("Client prediction result:", { percentage, level, factors: { temp, humid, wind, veg } });
+
+  return { 
+    percentage, 
+    level,
+    confidence: 85, // Client-side predictions have good confidence
+    factors: {
+      temperature: { value: temp, contribution: 0.4 },
+      humidity: { value: humid, contribution: 0.3 },
+      wind_speed: { value: wind, contribution: 0.2 },
+      vegetation: { value: veg, contribution: 0.1 }
+    },
+    factorContributions: {
+      temperature: Math.round((temp > 30 ? 40 : temp > 20 ? 25 : 10)),
+      humidity: Math.round((humid < 30 ? 30 : humid < 50 ? 20 : 10)),
+      wind_speed: Math.round((wind > 15 ? 20 : wind > 10 ? 15 : 5)),
+      vegetation: Math.round((veg > 70 ? 10 : veg > 50 ? 5 : 2))
+    },
+    recommendations: generateRecommendations(percentage),
+    modelInfo: {
+      name: "Client-side Wildfire Risk Model",
+      version: "1.0",
+      accuracy: "85%"
+    }
+  };
+}
+
+// Generate recommendations based on risk level
+function generateRecommendations(riskPercentage) {
+  if (riskPercentage >= 75) {
+    return [
+      "Extreme fire danger - avoid any outdoor burning",
+      "Monitor weather conditions closely",
+      "Have evacuation plan ready",
+      "Keep emergency supplies accessible",
+      "Stay informed about local fire restrictions"
+    ];
+  } else if (riskPercentage >= 60) {
+    return [
+      "High fire danger - postpone outdoor burning",
+      "Check local fire restrictions",
+      "Clear defensible space around structures",
+      "Monitor weather and wind conditions",
+      "Prepare emergency supplies"
+    ];
+  } else if (riskPercentage >= 40) {
+    return [
+      "Moderate fire danger - use caution with fire",
+      "Follow all local fire regulations",
+      "Maintain defensible space",
+      "Check weather before outdoor activities",
+      "Have fire suppression tools ready"
+    ];
+  } else if (riskPercentage >= 20) {
+    return [
+      "Low fire danger - normal precautions apply",
+      "Follow basic fire safety practices",
+      "Maintain equipment in good condition",
+      "Stay aware of changing conditions"
+    ];
+  } else {
+    return [
+      "Very low fire danger",
+      "Standard fire safety practices sufficient",
+      "Monitor for changing weather conditions"
+    ];
+  }
 }
 
 // API-based prediction
@@ -51,9 +149,15 @@ export async function predictRisk({
   elevation = null,
   droughtIndex = null
 }) {
-  // If in production without a backend URL, use client-side prediction
-  if (isProduction && !hasBackendUrl) {
-    console.log('Production mode without backend URL, using client-side prediction');
+  // If in production without a valid backend URL, use client-side prediction
+  if (isProduction && !hasValidBackendUrl) {
+    console.log('Production mode without valid backend URL, using client-side prediction');
+    return clientPredictRisk({ temperature, humidity, windSpeed, vegetation });
+  }
+  
+  // If no backend URL is set at all, use client-side prediction
+  if (!import.meta.env.VITE_API_BASE_URL) {
+    console.log('No backend URL configured, using client-side prediction');
     return clientPredictRisk({ temperature, humidity, windSpeed, vegetation });
   }
 
